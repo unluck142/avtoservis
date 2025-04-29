@@ -13,7 +13,7 @@ class UserDBStorage extends DBStorage implements ISaveStorage
 
         $sth = $this->connection->prepare($sql);
 
-        $result= $sth->execute( [
+        $result = $sth->execute( [
             'name' => $data['username'],
             'email' => $data['email'],
             'pass' => $data['password'],
@@ -29,9 +29,7 @@ class UserDBStorage extends DBStorage implements ISaveStorage
             "SELECT id FROM users WHERE email = ?"
         );
         $stmt->execute([$email]);
-        if ($stmt->rowCount() > 0) 
-            return false;
-        return true;
+        return $stmt->rowCount() === 0; // Упрощение условия
     }
 
     public function saveVerified($token): bool
@@ -42,7 +40,6 @@ class UserDBStorage extends DBStorage implements ISaveStorage
         $stmt->execute([$token]);
 
         if ($stmt->rowCount() > 0) {
-
             $user = $stmt->fetch();
             $update = $this->connection->prepare(
                 "UPDATE users SET is_verified = 1, 
@@ -58,8 +55,7 @@ class UserDBStorage extends DBStorage implements ISaveStorage
     /**
      * Аутентификация пользователя
      */
-    public function loginUser($username, $password):bool {   
-
+    public function loginUser ($username, $password): bool {   
         // Поиск пользователя
         $stmt = $this->connection->prepare(
             "SELECT id, username, password FROM users 
@@ -67,11 +63,8 @@ class UserDBStorage extends DBStorage implements ISaveStorage
             (username = ? OR email = ?)");
         $stmt->execute([$username, $username]);
         $user = $stmt->fetch();
-// var_dump($username);
-// var_dump($password);
-// var_dump($user);
-// exit();
-        // проверка записи
+
+        // Проверка записи
         if ($user === false) 
             return false;
         if (!password_verify($password, $user['password']))
@@ -92,10 +85,41 @@ class UserDBStorage extends DBStorage implements ISaveStorage
         $stmt->execute([$id_user]);
 
         if ($stmt->rowCount() > 0) {
-            $user = $stmt->fetch();
-            return $user;
+            return $stmt->fetch(PDO::FETCH_ASSOC); // Возвращаем ассоциативный массив
         }
-        return null;
+        return null; // Если пользователя нет, возвращаем null
     }
 
+    /* Получает историю заказов пользователя по его id */
+    public function getDataHistory(int $userId): array {
+        $query = "SELECT * FROM appointments WHERE user_id = :user_id"; // Убедитесь, что вы обращаетесь к правильной таблице
+        $stmt = $this->connection->prepare($query);
+        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+    
+        if ($stmt->rowCount() > 0) {
+            return $stmt->fetchAll(PDO::FETCH_ASSOC); // Возвращаем массив всех заказов
+        }
+        return []; // Возвращаем пустой массив, если заказов нет
+    }
+    public function saveAppointment(array $data): bool {
+        $sql = "INSERT INTO appointments (user_id, date, time) VALUES (:user_id, :date, :time)";
+        $stmt = $this->connection->prepare($sql);
+        
+        // Логирование перед выполнением запроса
+        error_log("Сохраняем запись: " . print_r($data, true));
+    
+        if ($stmt->execute([
+            'user_id' => $data['user_id'],
+            'date' => $data['date'],
+            'time' => $data['time'],
+        ])) {
+            return true;
+        } else {
+            // Логирование ошибки выполнения запроса
+            error_log("Ошибка выполнения запроса: " . implode(", ", $stmt->errorInfo()));
+            return false;
+        }
+    }
+    
 }

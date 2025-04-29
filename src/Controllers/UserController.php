@@ -59,4 +59,24 @@ class UserController {
     public function updateProfile(): string {
         return "";
     }
+    public function getOrdersHistory(): string {
+        $userId = $_SESSION['user_id']; // Получите ID авторизованного пользователя
+        if (!$userId) {
+            header("Location: /avtoservis/login"); // Перенаправление на страницу входа, если пользователь не авторизован
+            exit;
+        }
+    
+        // Создаем экземпляр UserDBStorage
+        $userDBStorage = new UserDBStorage();
+        $data = $userDBStorage->getDataHistory($userId); // Получаем историю заказов
+    
+        // Если данных нет, инициализируем пустой массив
+        if ($data === null) {
+            $data = []; // Инициализируем пустой массив, если нет заказов
+            $_SESSION['flash'] = "У вас нет заказов."; // Уведомление, если заказов нет
+        }
+    
+        return UserTemplate::getHistoryTemplate($data); // Возвращаем шаблон с историей заказов
+    }
 }
+

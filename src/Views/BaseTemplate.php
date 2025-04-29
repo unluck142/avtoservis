@@ -1,5 +1,6 @@
 <?php 
 namespace App\Views;
+
 class BaseTemplate 
 {
     public static function getTemplate(): string {
@@ -11,7 +12,7 @@ class BaseTemplate
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title> %s </title>
+            <title>%s</title>
             <link rel="stylesheet" href="https://localhost/avtoservis/assets/css/bootstrap.min.css">
             <script src="https://localhost/avtoservis/assets/js/bootstrap.bundle.js"></script>
         </head>
@@ -43,13 +44,17 @@ class BaseTemplate
                         <li class="nav-item">
                         <a class="nav-link" href="/avtoservis/about">О нас</a>
                         </li>
+                        <li class="nav-item">
+                        <a class="nav-link" href="/avtoservis/history">Записи заказов</a>
+                        </li>
                     </ul>
                     </div>
                 </div>
         HTML;
 
-if ($user_id > 0) {
-        $template .= <<<HTML
+        // Проверка, авторизован ли пользователь
+        if ($user_id > 0) {
+            $template .= <<<HTML
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -64,17 +69,16 @@ if ($user_id > 0) {
                         </ul>
                     </li>
                 </ul>
-        HTML;
-} else {
-    $template .= <<<HTML
-        <a class="nav-link p-3" href="/avtoservis/login">
-        Вход
-        </a>
-    HTML;    
-}
+            HTML;
+        } else {
+            $template .= <<<HTML
+                <a class="nav-link p-3" href="/avtoservis/login">Вход</a>
+            HTML;    
+        }
+
         $template .= "</nav></header>";
 
-        // Добавим flash сообщение
+        // Добавление флэш-сообщения
         if (isset($_SESSION['flash'])) {
             $template .= <<<END
                 <div id="liveAlertBtn" class="alert alert-info alert-dismissible" role="alert">
@@ -83,14 +87,14 @@ if ($user_id > 0) {
                     onclick="this.parentNode.style.display='none';"></button>
                 </div>
             END;
-            unset($_SESSION['flash']);
+            unset($_SESSION['flash']); // Удаляем сообщение после отображения
         }
 
-        $template.= <<<HTML
+        $template .= <<<HTML
             %s
             <footer class="mt-3 p-3">
                 © 2025 «Кемеровский кооперативный техникум»
-            <footer>
+            </footer>
         </body>
         </html>
         HTML;

@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\Router;
 
 use App\Controllers\AboutController;
@@ -8,12 +8,13 @@ use App\Controllers\BasketController;
 use App\Controllers\OrderController;
 use App\Controllers\RegisterController;
 use App\Controllers\UserController;
+use App\Controllers\AppointmentController; // Добавьте этот импорт
 
 class Router {
     public function route(string $url): string {
         $path = parse_url($url, PHP_URL_PATH);
         $pieces = explode("/", $path);
-        $resource = $pieces[2];
+        $resource = $pieces[2] ?? null; // Используем null coalescing operator для избежания ошибок
 
         switch ($resource) {
             case "about":
@@ -30,7 +31,7 @@ class Router {
                 return $userController->profile();
             case "verify":
                 $registerController = new RegisterController();
-                $token = (isset($pieces[3])) ? $pieces[3] : null;
+                $token = $pieces[3] ?? null; // Используем null coalescing operator
                 return $registerController->verify($token);
             case "login":
                 $userController = new UserController();
@@ -40,29 +41,49 @@ class Router {
                 unset($_SESSION['username']);
                 session_destroy();
                 header("Location: /avtoservis/");
-                return "";
+                return ""; // Возвращаем пустую строку
             case 'basket_clear':
                 $basketController = new BasketController();
                 $basketController->clear();
                 $prevUrl = $_SERVER['HTTP_REFERER'];
                 header("Location: {$prevUrl}");
-                return '';
+                return ''; // Возвращаем пустую строку
             case "products":
                 $productController = new ProductController();
-                $id = (isset($pieces[3])) ? intval($pieces[3]) : null; // Исправлено
+                $id = $pieces[3] ?? null; // Используем null coalescing operator
                 return $productController->get($id);                
             case "basket":
                 $basketController = new BasketController();
                 $basketController->add();
                 $prevUrl = $_SERVER['HTTP_REFERER'];
                 header("Location: {$prevUrl}");                    
-                return "";
+                return ""; // Возвращаем пустую строку
             case "select_time":
                 $orderController = new OrderController();
                 return $orderController->selectTime();
+            case "history":
+                $userController = new UserController();
+                return $userController->getOrdersHistory(); // Обработка истории заказов
             default:
                 $home = new HomeController();
-                return $home->get();
+                return $home->get(); // Возвращаем главную страницу по умолчанию
         }
+
+        // Если ни один из случаев не сработал, возвращаем пустую строку
+        return ""; // Это гарантирует, что метод всегда возвращает строку
+    }
+
+    // Добавьте метод для обработки POST-запроса на создание записи
+    public function post(string $url): string {
+        $path = parse_url($url, PHP_URL_PATH);
+        $pieces = explode("/", $path);
+        $resource = $pieces[2] ?? null;
+
+        if ($resource === "book") {
+            $appointmentController = new AppointmentController();
+            return $appointmentController->bookAppointment(); // Обработка записи
+        }
+
+        return ""; // Возвращаем пустую строку, если не найдено
     }
 }
