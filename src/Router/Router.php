@@ -62,8 +62,8 @@ class Router {
                 $orderController = new OrderController();
                 return $orderController->selectTime();
             case "history":
-                $userController = new UserController();
-                return $userController->getOrdersHistory(); // Обработка истории заказов
+                $appointmentController = new AppointmentController();
+                return $appointmentController->getHistory(); // Обработка истории записей
             default:
                 $home = new HomeController();
                 return $home->get(); // Возвращаем главную страницу по умолчанию

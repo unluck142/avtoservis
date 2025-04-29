@@ -92,15 +92,12 @@ class UserDBStorage extends DBStorage implements ISaveStorage
 
     /* Получает историю заказов пользователя по его id */
     public function getDataHistory(int $userId): array {
-        $query = "SELECT * FROM appointments WHERE user_id = :user_id"; // Убедитесь, что вы обращаетесь к правильной таблице
+        $query = "SELECT * FROM appointments WHERE user_id = :user_id ORDER BY date DESC, time DESC";
         $stmt = $this->connection->prepare($query);
         $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
     
-        if ($stmt->rowCount() > 0) {
-            return $stmt->fetchAll(PDO::FETCH_ASSOC); // Возвращаем массив всех заказов
-        }
-        return []; // Возвращаем пустой массив, если заказов нет
+        return $stmt->fetchAll(PDO::FETCH_ASSOC); // Возвращаем массив всех заказов
     }
     public function saveAppointment(array $data): bool {
         $sql = "INSERT INTO appointments (user_id, date, time) VALUES (:user_id, :date, :time)";

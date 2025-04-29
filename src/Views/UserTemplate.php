@@ -6,11 +6,11 @@ use App\Views\BaseTemplate;
 class UserTemplate extends BaseTemplate
 {
     /*
-        Формирование страница "Регистрация"
+        Формирование страницы "Вход пользователя"
     */
     public static function getUserTemplate(): string {
         $template = parent::getTemplate();
-        $title= 'Вход пользователя';
+        $title = 'Вход пользователя';
         $content = <<<CORUSEL
         <main class="row p-5 justify-content-center align-items-center">
             <div class="col-5 bg-light border">
@@ -19,7 +19,7 @@ class UserTemplate extends BaseTemplate
         $content .= self::getFormLogin();
         $content .= "</div></main>";
 
-        $resultTemplate =  sprintf($template, $title, $content);
+        $resultTemplate = sprintf($template, $title, $content);
         return $resultTemplate;
     }
 
@@ -27,7 +27,7 @@ class UserTemplate extends BaseTemplate
         Форма входа (логин, пароль)
     */
     public static function getFormLogin(): string {
-        $html= <<<FORMA
+        $html = <<<FORMA
                 <form action="/avtoservis/login" method="POST">
                     <div class="mb-3">
                         <label for="nameInput" class="form-label">Логин (имя или емайл):</label>
@@ -44,11 +44,11 @@ class UserTemplate extends BaseTemplate
     }
 
     /*
-        Формирование страница "Профиль"
+        Формирование страницы "Профиль"
     */
     public static function getProfileTemplate(?array $data): string {
         $template = parent::getTemplate();
-        $title= 'Профиль пользователя';
+        $title = 'Профиль пользователя';
         $content = <<<CORUSEL
         <main class="row p-5 justify-content-center align-items-center">
             <div class="col-8 bg-light border">
@@ -57,21 +57,20 @@ class UserTemplate extends BaseTemplate
         $content .= self::getFormProfile($data);
         $content .= "</div></main>";
 
-        $resultTemplate =  sprintf($template, $title, $content);
+        $resultTemplate = sprintf($template, $title, $content);
         return $resultTemplate;
     }
 
     /* 
-        Форма входа (логин, пароль)
+        Форма профиля
     */
     public static function getFormProfile(?array $data): string {
-        
         $fio = (isset($data)) ? $data[1] : "";
         $email = (isset($data)) ? $data[2] : "";
-        $address = (isset($data))? $data[3] : "";
-        $phone = (isset($data))? $data[4] : "";
+        $address = (isset($data)) ? $data[3] : "";
+        $phone = (isset($data)) ? $data[4] : "";
 
-        $html= <<<FORMA
+        $html = <<<FORMA
                 <form action="/avtoservis/profile" method="POST">
                     <div class="mb-3">
                         <label for="fioInput" class="form-label">Ваше имя (ФИО):</label>
@@ -94,29 +93,40 @@ class UserTemplate extends BaseTemplate
         FORMA;
         return $html;
     }
-    public static function getHistoryTemplate(?array $data): string {
-        $template = parent::getTemplate();
-        $title = 'История заказов';
-        $content = <<<CORUSEL
-        <main class="row p-5 justify-content-center align-items-center">
-            <div class="col-8 bg-light border">
-                <h3 class="mb-5">История заказов</h3>
-        CORUSEL;
-    
+
+    /*
+        Формирование страницы "История записей"
+    */
+    /*
+    Формирование страницы "История заказов"
+*/
+public static function getHistoryTemplate(array $appointments = []): string {
+    $template = parent::getTemplate();
+    $title = 'История заказов';
+    $content = <<<CORUSEL
+    <main class="row p-5 justify-content-center align-items-center">
+        <div class="col-8 bg-light border">
+            <h3 class="mb-5">История заказов</h3>
+CORUSEL;
+
+    // Проверяем, есть ли записи
+    if (empty($appointments)) {
+        $content .= "<p>У вас нет заказов.</p>";
+    } else {
         $content .= <<<TABLE
-            <table class="table table-striped">
-            <thead>
-                <tr>    
-                    <th>Номер заказа</th>
-                    <th>Дата</th>
-                    <th>Сумма</th>
-                    <th>Статус</th>
-                </tr>
-            </thead>
-            <tbody>
-        TABLE;
-    
-        foreach ($data as $row) {
+        <table class="table table-striped">
+        <thead>
+            <tr>    
+                <th>Номер заказа</th>
+                <th>Дата</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+TABLE;
+
+        foreach ($appointments as $row) {
             $orderDate = date("d-m-Y H:i", strtotime($row['created_at'])); // Используем правильное поле для даты
             $nameStatus = Config::getStatusName($row['status']);
             $colorStyle = Config::getStatusColor($row['status']);
@@ -127,18 +137,17 @@ class UserTemplate extends BaseTemplate
                 <td>{$row['all_sum']} ₽</td>
                 <td class="{$colorStyle}">{$nameStatus}</td>
             </tr>
-            TABLE;
+TABLE;
         }
-    
+
         $content .= <<<TABLE
-            </tbody>
-            </table>
-            </div>
-        </main>
-        TABLE;
-    
-        $resultTemplate = sprintf($template, $title, $content);
-        return $resultTemplate;
+        </tbody>
+        </table>
+TABLE;
     }
-    
+
+    $content .= "</div></main>";
+    $resultTemplate = sprintf($template, $title, $content);
+    return $resultTemplate;
+}
 }
