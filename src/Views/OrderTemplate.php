@@ -69,11 +69,13 @@ class OrderTemplate extends BaseTemplate {
     }
 
     private static function getOrderForm(): string {
+        $fio = $_SESSION['user_data']['username'] ?? ''; // Автозаполнение из данных пользователя
         return '
             <form action="/avtoservis/order" method="POST">
                 <div class="mb-3">
                     <label for="fio" class="form-label">Ваше ФИО:</label>
                     <input type="text" name="fio" id="fio" class="form-control" required>
+                    value="'.htmlspecialchars($fio).'" required>
                 </div>
                 <div class="mb-3">
                     <label for="address" class="form-label">Адрес доставки:</label>

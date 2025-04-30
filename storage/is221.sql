@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1
--- Время создания: Апр 29 2025 г., 11:55
+-- Время создания: Апр 30 2025 г., 18:42
 -- Версия сервера: 10.4.32-MariaDB
 -- Версия PHP: 8.2.12
 
@@ -31,7 +31,11 @@ CREATE TABLE `appointments` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `date` date NOT NULL,
-  `time` time NOT NULL
+  `time` time NOT NULL,
+  `service_type` varchar(255) DEFAULT NULL,
+  `comments` text DEFAULT NULL,
+  `status` enum('pending','confirmed','completed','cancelled') DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -41,10 +45,14 @@ CREATE TABLE `appointments` (
 --
 
 CREATE TABLE `bookings` (
-  `bookingid` int(11) NOT NULL,
-  `usersid` int(11) DEFAULT NULL,
-  `productsid` int(11) DEFAULT NULL,
-  `bookingDate` datetime DEFAULT NULL
+  `id` int(11) NOT NULL,
+  `fio` varchar(120) NOT NULL,
+  `address` text NOT NULL,
+  `phone` varchar(20) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `bookingDate` datetime NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -121,24 +129,26 @@ INSERT INTO `products` (`id`, `name`, `description`, `image`, `price`, `created`
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `username` varchar(50) NOT NULL,
+  `fio` varchar(120) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
   `token` varchar(255) NOT NULL,
   `is_verified` tinyint(1) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `address` varchar(255) DEFAULT NULL,
-  `phone` varchar(20) DEFAULT NULL
+  `phone` varchar(20) DEFAULT NULL,
+  `avatar` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Дамп данных таблицы `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `email`, `password`, `token`, `is_verified`, `created_at`, `address`, `phone`) VALUES
-(1, 'unluck', 'slump55992@credit-loans.xyz', '$2y$10$/6N6i/WghPLXCsosr2oPhOhllBit66jmLCl6CDz7mqmcUduwrJ3Yi', '', 1, '2025-04-24 21:05:15', NULL, NULL),
-(2, 'admin', 'kachkaryov2010@gmail.com', '$2y$10$e4HuMUyCZVEIn.HhnCKi6ejqBBZ6k2erBISpPEzv4w6xJYW4qmuYW', '', 1, '2025-04-24 21:10:45', NULL, NULL),
-(3, 'admin', 'adult966@business-degree.live', '$2y$10$jlty5ROw.kwgsU2GZMGbtOLZnoYGfgVbqUuiDoyav4V0B/ZJ4EeL6', '', 1, '2025-04-25 15:12:46', NULL, NULL),
-(5, 'unluck142', 'plot9743@examstudy.xyz', '$2y$10$WJtk.jthoOoFAcMSu1twtugicKMlmUXnU8sx.wWRG.56.ip.uiRZe', '', 1, '2025-04-29 16:07:17', NULL, NULL);
+INSERT INTO `users` (`id`, `username`, `fio`, `email`, `password`, `token`, `is_verified`, `created_at`, `address`, `phone`, `avatar`) VALUES
+(1, 'unluck', NULL, 'slump55992@credit-loans.xyz', '$2y$10$/6N6i/WghPLXCsosr2oPhOhllBit66jmLCl6CDz7mqmcUduwrJ3Yi', '', 1, '2025-04-24 21:05:15', NULL, NULL, NULL),
+(2, 'admin', NULL, 'kachkaryov2010@gmail.com', '$2y$10$e4HuMUyCZVEIn.HhnCKi6ejqBBZ6k2erBISpPEzv4w6xJYW4qmuYW', '', 1, '2025-04-24 21:10:45', NULL, NULL, NULL),
+(3, 'admin', NULL, 'adult966@business-degree.live', '$2y$10$jlty5ROw.kwgsU2GZMGbtOLZnoYGfgVbqUuiDoyav4V0B/ZJ4EeL6', '', 1, '2025-04-25 15:12:46', NULL, NULL, NULL),
+(5, 'unluck142', NULL, 'plot9743@examstudy.xyz', '$2y$10$WJtk.jthoOoFAcMSu1twtugicKMlmUXnU8sx.wWRG.56.ip.uiRZe', '', 1, '2025-04-29 16:07:17', NULL, NULL, NULL);
 
 --
 -- Индексы сохранённых таблиц
@@ -155,9 +165,8 @@ ALTER TABLE `appointments`
 -- Индексы таблицы `bookings`
 --
 ALTER TABLE `bookings`
-  ADD PRIMARY KEY (`bookingid`),
-  ADD KEY `usersid` (`usersid`),
-  ADD KEY `productsid` (`productsid`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Индексы таблицы `orders`
@@ -200,7 +209,7 @@ ALTER TABLE `appointments`
 -- AUTO_INCREMENT для таблицы `bookings`
 --
 ALTER TABLE `bookings`
-  MODIFY `bookingid` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT для таблицы `orders`
@@ -234,14 +243,13 @@ ALTER TABLE `users`
 -- Ограничения внешнего ключа таблицы `appointments`
 --
 ALTER TABLE `appointments`
-  ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `appointments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Ограничения внешнего ключа таблицы `bookings`
 --
 ALTER TABLE `bookings`
-  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`usersid`) REFERENCES `users` (`id`),
-  ADD CONSTRAINT `bookings_ibfk_2` FOREIGN KEY (`productsid`) REFERENCES `products` (`id`);
+  ADD CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 --
 -- Ограничения внешнего ключа таблицы `order_item`

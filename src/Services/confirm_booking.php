@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+error_log("User ID: " . $_SESSION['user_id'] ?? 'null');
+error_log("Booking data: " . print_r($_POST, true));
+
 // Проверка, были ли отправлены данные из формы
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Получаем данные из формы
@@ -19,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Подготовка SQL-запроса для вставки данных
-    $stmt = $conn->prepare("INSERT INTO bookings (fio, address, phone, email, bookingDate) VALUES (?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO bookings (fio, address, phone, email, bookingDate, user_id) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("sssss", $fio, $address, $phone, $email, $bookingDate);
 
     // Выполнение запроса и проверка на ошибки

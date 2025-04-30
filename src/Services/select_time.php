@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form action="/avtoservis/confirm_booking" method="POST">
         <label for="date">Выберите дату и время:</label>
         <input type="datetime-local" name="bookingDate" id="date" required>
-        <input type="hidden" name="fio" value="<?php echo htmlspecialchars($_SESSION['order_data']['fio']); ?>">
+        <input type="hidden" name="username" value="<?php echo htmlspecialchars($_SESSION['order_data']['username']); ?>">
         <input type="hidden" name="address" value="<?php echo htmlspecialchars($_SESSION['order_data']['address']); ?>">
         <input type="hidden" name="phone" value="<?php echo htmlspecialchars($_SESSION['order_data']['phone']); ?>">
         <input type="hidden" name="email" value="<?php echo htmlspecialchars($_SESSION['order_data']['email']); ?>">

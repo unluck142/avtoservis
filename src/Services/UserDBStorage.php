@@ -1,122 +1,111 @@
-<?php 
+<?php
 namespace App\Services;
 
 use PDO;
 
-class UserDBStorage extends DBStorage implements ISaveStorage
-{
-    public function saveData(string $name, array $data): bool
-    {
-        $sql = "INSERT INTO `users`
-        (`username`, `email`, `password`, `token`) 
-        VALUES (:name, :email, :pass, :token)";
+class UserDBStorage {
+    private PDO $pdo;
 
-        $sth = $this->connection->prepare($sql);
-
-        $result = $sth->execute( [
-            'name' => $data['username'],
-            'email' => $data['email'],
-            'pass' => $data['password'],
-            'token' => $data['token']
-        ] );
-
-        return $result;
+    public function __construct() {
+        $this->pdo = new PDO('mysql:host=localhost;dbname=is221', 'root', '');
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 
-    public function uniqueEmail(string $email): bool
-    {
-        $stmt = $this->connection->prepare(
-            "SELECT id FROM users WHERE email = ?"
-        );
-        $stmt->execute([$email]);
-        return $stmt->rowCount() === 0; // Упрощение условия
-    }
-
-    public function saveVerified($token): bool
-    {
-        $stmt = $this->connection->prepare(
-            "SELECT id FROM users WHERE token = ? 
-            AND is_verified = 0");
-        $stmt->execute([$token]);
-
-        if ($stmt->rowCount() > 0) {
-            $user = $stmt->fetch();
-            $update = $this->connection->prepare(
-                "UPDATE users SET is_verified = 1, 
-                token = '' 
-                WHERE id = ?");
-            $update->execute([$user['id']]);
-
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Аутентификация пользователя
-     */
-    public function loginUser ($username, $password): bool {   
-        // Поиск пользователя
-        $stmt = $this->connection->prepare(
-            "SELECT id, username, password FROM users 
-            WHERE is_verified = 1 and
-            (username = ? OR email = ?)");
-        $stmt->execute([$username, $username]);
-        $user = $stmt->fetch();
-
-        // Проверка записи
-        if ($user === false) 
-            return false;
-        if (!password_verify($password, $user['password']))
-            return false;
-        
-        // Установка переменных сессии
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        
-        return true;
-    }
-
-    /* Получает данные пользователя по его id */
-    public function getUserData(int $id_user): ?array {
-        $stmt = $this->connection->prepare(
-            "SELECT id, username, email, address, phone
-            FROM users WHERE id = ? ");
-        $stmt->execute([$id_user]);
-
-        if ($stmt->rowCount() > 0) {
-            return $stmt->fetch(PDO::FETCH_ASSOC); // Возвращаем ассоциативный массив
-        }
-        return null; // Если пользователя нет, возвращаем null
-    }
-
-    /* Получает историю заказов пользователя по его id */
-    public function getDataHistory(int $userId): array {
-        $query = "SELECT * FROM appointments WHERE user_id = :user_id ORDER BY date DESC, time DESC";
-        $stmt = $this->connection->prepare($query);
-        $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
-        $stmt->execute();
-    
-        return $stmt->fetchAll(PDO::FETCH_ASSOC); // Возвращаем массив всех заказов
-    }
     public function saveAppointment(array $data): bool {
-        $sql = "INSERT INTO appointments (user_id, date, time) VALUES (:user_id, :date, :time)";
-        $stmt = $this->connection->prepare($sql);
+        $stmt = $this->pdo->prepare("INSERT INTO appointments 
+            (user_id, date, time, service_type, comments, status) 
+            VALUES (:user_id, :date, :time, :service_type, :comments, 'pending')");
         
-        // Логирование перед выполнением запроса
-        error_log("Сохраняем запись: " . print_r($data, true));
-    
-        if ($stmt->execute([
-            'user_id' => $data['user_id'],
-            'date' => $data['date'],
-            'time' => $data['time'],
-        ])) {
-            return true;
-        } else {
-            // Логирование ошибки выполнения запроса
-            error_log("Ошибка выполнения запроса: " . implode(", ", $stmt->errorInfo()));
-            return false;
-        }
+        return $stmt->execute([
+            ':user_id' => $data['user_id'],
+            ':date' => $data['date'],
+            ':time' => $data['time'],
+            ':service_type' => $data['service_type'] ?? null,
+            ':comments' => $data['comments'] ?? null
+        ]);
+    }
+
+    public function getUserHistory(int $userId): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM appointments 
+                                   WHERE user_id = :user_id 
+                                   ORDER BY date DESC, time DESC");
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function cancelAppointment(int $userId, int $appointmentId): bool {
+        $stmt = $this->pdo->prepare("UPDATE appointments 
+                                   SET status = 'cancelled' 
+                                   WHERE id = :id AND user_id = :user_id");
+        return $stmt->execute([
+            ':id' => $appointmentId,
+            ':user_id' => $userId
+        ]);
+    }
+
+    public function isSlotAvailable(string $date, string $time): bool {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM appointments 
+                                   WHERE date = :date AND time = :time 
+                                   AND status != 'cancelled'");
+        $stmt->execute([':date' => $date, ':time' => $time]);
+        return $stmt->fetchColumn() == 0;
+    }
+
+    public function getAvailableSlots(): array {
+        // Здесь должна быть логика получения доступных временных слотов
+        // Например, можно вернуть фиксированный набор времен
+        return [
+            '09:00', '10:00', '11:00', '12:00',
+            '13:00', '14:00', '15:00', '16:00'
+        ];
+    }
+    public function saveOrder(array $orderData): bool {
+        $stmt = $this->pdo->prepare("INSERT INTO bookings 
+            (user_id, fio, address, phone, email, bookingDate) 
+            VALUES (:user_id, :fio, :address, :phone, :email, :booking_date)");
+        
+        return $stmt->execute([
+            ':user_id' => $_SESSION['user_id'],
+            ':fio' => $orderData['fio'],
+            ':address' => $orderData['address'],
+            ':phone' => $orderData['phone'],
+            ':email' => $orderData['email'],
+            ':booking_date' => $orderData['bookingDate']
+        ]);
     }
     
+    public function getOrderHistory(int $userId): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM bookings WHERE user_id = :user_id ORDER BY bookingDate DESC");
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function getUserData(int $userId): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
+        $stmt->execute([':id' => $userId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user) {
+            throw new \RuntimeException("User with ID {$userId} not found");
+        }
+        
+        return $user;
+    }
+    public function updateProfile(int $userId, array $data): bool {
+        $stmt = $this->pdo->prepare("UPDATE users SET 
+            username = :username,
+            email = :email,
+            address = :address,
+            phone = :phone,
+            avatar = :avatar
+            WHERE id = :id");
+        
+        return $stmt->execute([
+            ':username' => $data['username'],
+            ':email' => $data['email'],
+            ':address' => $data['address'],
+            ':phone' => $data['phone'],
+            ':avatar' => $data['avatar'] ?? null,
+            ':id' => $userId
+        ]);
+    }
 }

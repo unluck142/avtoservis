@@ -1,25 +1,16 @@
 <?php
-session_start(); // Инициализация сессии
+session_start();
+require __DIR__ . '/vendor/autoload.php';
 
-require_once __DIR__ . '/vendor/autoload.php'; // Подключение автозагрузчика Composer
+// Инициализация глобальных переменных из сессии
+$user_id = $_SESSION['user_id'] ?? 0;
+$username = $_SESSION['username'] ?? '';
 
-use App\Router\Router;
-
-// Обновляем глобальные переменные - данными из сессии
-$user_id = 0; 
-$username = "";
-if (isset($_SESSION['user_id'])) {
-    $user_id = $_SESSION['user_id'];
-}
-if (isset($_SESSION['username'])) {
-    $username = $_SESSION['username'];
-}
-
-$router = new Router();
-$url = $_SERVER['REQUEST_URI']; 
-echo $router->route($url);
-
-// Включение отображения ошибок для отладки
+// Настройки отображения ошибок
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+
+// Инициализация маршрутизатора
+$router = require __DIR__ . '/src/Routes.php';
+echo $router->route($_SERVER['REQUEST_URI']);
