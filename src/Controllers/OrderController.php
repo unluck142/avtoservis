@@ -4,12 +4,21 @@ namespace App\Controllers;
 use App\Views\OrderTemplate;
 use App\Services\ProductFactory;
 use App\Services\ValidateOrderData;
+use App\Services\UserDBStorage;
+use Exception;
+use PDO;
 
 class OrderController {
+    private UserDBStorage $storage;
+
+    public function __construct() {
+        $this->storage = new UserDBStorage();
+    }
+
     public function get(): string {
         $method = $_SERVER['REQUEST_METHOD'];
         if ($method == "POST") {
-            return $this->create(); // Обработка POST-запроса
+            return $this->create();
         }
 
         $model = ProductFactory::createProduct();
@@ -27,20 +36,14 @@ class OrderController {
         $arr['email'] = strip_tags($_POST['email']??'');
         $arr['created_at'] = date("d-m-Y H:i:s");
 
-        // Валидация
         if (!ValidateOrderData::validate($arr)) {
             header("Location: /avtoservis/order");
             exit;
         }
 
-        // Сохраняем данные в сессии
         $_SESSION['order_data'] = $arr;
-        $_SESSION['user_data'] = $arr; // Дополнительное сохранение
-
-        // Устанавливаем флэш-сообщение
-        $_SESSION['flash'] = "Запись успешно создана!"; // Добавьте это сообщение
-
-        // Переадресация на страницу выбора времени
+        $_SESSION['user_data'] = $arr;
+        $_SESSION['flash'] = "Запись успешно создана!";
         header("Location: /avtoservis/select_time");
         exit;
     }
@@ -63,28 +66,87 @@ class OrderController {
         ';
     }
     
-    public function confirmBooking(): string {
+    public function confirmBooking(): void {
+        try {
+            if (!isset($_SESSION['user_id'])) {
+                throw new Exception("Требуется авторизация");
+            }
+    
+            if (empty($_SESSION['basket'])) {
+                throw new Exception("Корзина пуста");
+            }
+
+            // Восстановление данных товаров
+            $db = new PDO('mysql:host=localhost;dbname=is221', 'root', '');
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+            foreach ($_SESSION['basket'] as $productId => &$item) {
+                if (!isset($item['price']) || !isset($item['id'])) {
+                    $stmt = $db->prepare("SELECT id, price FROM products WHERE id = ?");
+                    $stmt->execute([$productId]);
+                    $product = $stmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if ($product) {
+                        $item['id'] = (int)$product['id'];
+                        $item['price'] = (float)$product['price'];
+                    }
+                }
+                
+                if (!isset($item['quantity'])) {
+                    $item['quantity'] = 1;
+                }
+            }
+            unset($item);
+
+            $orderData = [
+                'user_id' => $_SESSION['user_id'],
+                'fio' => $_POST['fio'] ?? '',
+                'address' => $_POST['address'] ?? '',
+                'phone' => $_POST['phone'] ?? '',
+                'email' => $_POST['email'] ?? '',
+                'products' => []
+            ];
+    
+            foreach ($_SESSION['basket'] as $item) {
+                $orderData['products'][] = [
+                    'id' => (int)$item['id'],
+                    'price' => (float)$item['price'],
+                    'quantity' => (int)$item['quantity']
+                ];
+            }
+    
+            if (empty($orderData['products'])) {
+                throw new Exception("Невозможно оформить заказ. Корзина пуста или содержит ошибки.");
+            }
+    
+            // Используем инициализированное свойство storage
+            $orderId = $this->storage->saveOrder($orderData);
+            
+            $_SESSION['flash'] = "Заказ #$orderId успешно оформлен!";
+            unset($_SESSION['basket']);
+            header("Location: /avtoservis/history");
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['flash'] = $e->getMessage();
+            error_log("Order confirmation failed: " . $e->getMessage());
+            header("Location: /avtoservis/order");
+            exit;
+        }
+    }
+
+    public function history(): string {
         if (!isset($_SESSION['user_id'])) {
             header("Location: /avtoservis/login");
             exit;
         }
-    
-        $orderData = [
-            'fio' => $_POST['fio'],
-            'address' => $_POST['address'],
-            'phone' => $_POST['phone'],
-            'email' => $_POST['email'],
-            'bookingDate' => $_POST['bookingDate']
-        ];
-    
-        $storage = new UserDBStorage();
-        if ($storage->saveOrder($orderData)) {
-            $_SESSION['flash'] = "Запись успешно создана!";
-            header("Location: /avtoservis/history");
-            exit;
-        } else {
-            $_SESSION['flash'] = "Ошибка при создании записи";
-            header("Location: /avtoservis/order");
+        
+        try {
+            $orders = $this->storage->getOrderHistory($_SESSION['user_id']);
+            return OrderTemplate::renderHistory($orders);
+        } catch (Exception $e) {
+            error_log("Error fetching order history: " . $e->getMessage());
+            $_SESSION['flash'] = "Ошибка при загрузке истории заказов";
+            header("Location: /avtoservis/");
             exit;
         }
     }

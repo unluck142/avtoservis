@@ -2,11 +2,15 @@
 namespace App\Services;
 
 use PDO;
+use PDOException;
+use InvalidArgumentException;
+use Exception;
 
 class UserDBStorage {
     private PDO $pdo;
 
     public function __construct() {
+        // В конструкторе UserDBStorage
         $this->pdo = new PDO('mysql:host=localhost;dbname=is221', 'root', '');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
@@ -59,25 +63,59 @@ class UserDBStorage {
             '13:00', '14:00', '15:00', '16:00'
         ];
     }
-    public function saveOrder(array $orderData): bool {
-        $stmt = $this->pdo->prepare("INSERT INTO bookings 
-            (user_id, fio, address, phone, email, bookingDate) 
-            VALUES (:user_id, :fio, :address, :phone, :email, :booking_date)");
-        
-        return $stmt->execute([
-            ':user_id' => $_SESSION['user_id'],
-            ':fio' => $orderData['fio'],
-            ':address' => $orderData['address'],
-            ':phone' => $orderData['phone'],
-            ':email' => $orderData['email'],
-            ':booking_date' => $orderData['bookingDate']
-        ]);
-    }
+    public function saveOrder(array $orderData): int {
+        if (!isset($orderData['user_id']) || !is_int($orderData['user_id'])) {
+            throw new InvalidArgumentException("Некорректный ID пользователя");
+        }
     
-    public function getOrderHistory(int $userId): array {
-        $stmt = $this->pdo->prepare("SELECT * FROM bookings WHERE user_id = :user_id ORDER BY bookingDate DESC");
-        $stmt->execute([':user_id' => $userId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->pdo->beginTransaction();
+        
+        try {
+            $total = array_reduce($orderData['products'], function($sum, $item) {
+                return $sum + ($item['price'] * $item['quantity']);
+            }, 0);
+    
+            $stmt = $this->pdo->prepare("INSERT INTO orders 
+                (user_id, fio, address, phone, email, all_sum, created, status) 
+                VALUES (:user_id, :fio, :address, :phone, :email, :total, NOW(), 1)");
+            
+            $stmt->execute([
+                ':user_id' => $orderData['user_id'],
+                ':fio' => $orderData['fio'],
+                ':address' => $orderData['address'],
+                ':phone' => $orderData['phone'],
+                ':email' => $orderData['email'],
+                ':total' => $total
+            ]);
+            
+            $orderId = $this->pdo->lastInsertId();
+            
+            $stmt = $this->pdo->prepare("INSERT INTO order_item 
+                (order_id, product_id, count_item, price_item, sum_item) 
+                VALUES (:order_id, :product_id, :quantity, :price, :sum)");
+                
+            foreach ($orderData['products'] as $product) {
+                if (!isset($product['id'], $product['price'], $product['quantity'])) {
+                    throw new InvalidArgumentException("Неполные данные товара");
+                }
+                
+                $sum = $product['price'] * $product['quantity'];
+                
+                $stmt->execute([
+                    ':order_id' => $orderId,
+                    ':product_id' => $product['id'],
+                    ':quantity' => $product['quantity'],
+                    ':price' => $product['price'],
+                    ':sum' => $sum
+                ]);
+            }
+            
+            $this->pdo->commit();
+            return $orderId;
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            throw new Exception("Ошибка сохранения заказа: " . $e->getMessage());
+        }
     }
     public function getUserData(int $userId): array {
         $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = :id");
@@ -107,5 +145,26 @@ class UserDBStorage {
             ':avatar' => $data['avatar'] ?? null,
             ':id' => $userId
         ]);
+    }
+    public function getOrderHistory(int $userId): array {
+        $stmt = $this->pdo->prepare("
+            SELECT o.*, 
+                   GROUP_CONCAT(p.name SEPARATOR ', ') AS products,
+                   SUM(oi.price_item * oi.count_item) AS total,
+                   CASE 
+                       WHEN o.status = 1 THEN 'Обработан'
+                       WHEN o.status = 0 THEN 'В обработке'
+                       ELSE 'Отменен'
+                   END AS status_text
+            FROM orders o
+            LEFT JOIN order_item oi ON o.id = oi.order_id
+            LEFT JOIN products p ON oi.product_id = p.id
+            WHERE o.user_id = :user_id
+            GROUP BY o.id
+            ORDER BY o.created DESC
+        ");
+        
+        $stmt->execute([':user_id' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

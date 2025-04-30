@@ -14,3 +14,4 @@ error_reporting(E_ALL);
 // Инициализация маршрутизатора
 $router = require __DIR__ . '/src/Routes.php';
 echo $router->route($_SERVER['REQUEST_URI']);
+error_log('Session ID: ' . session_id());

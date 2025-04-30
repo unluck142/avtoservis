@@ -69,13 +69,13 @@ class OrderTemplate extends BaseTemplate {
     }
 
     private static function getOrderForm(): string {
-        $fio = $_SESSION['user_data']['username'] ?? ''; // Автозаполнение из данных пользователя
+        $fio = $_SESSION['user_data']['username'] ?? '';
         return '
             <form action="/avtoservis/order" method="POST">
                 <div class="mb-3">
                     <label for="fio" class="form-label">Ваше ФИО:</label>
-                    <input type="text" name="fio" id="fio" class="form-control" required>
-                    value="'.htmlspecialchars($fio).'" required>
+                    <input type="text" name="fio" id="fio" class="form-control" 
+                        value="'.htmlspecialchars($fio).'" required>
                 </div>
                 <div class="mb-3">
                     <label for="address" class="form-label">Адрес доставки:</label>
@@ -92,5 +92,43 @@ class OrderTemplate extends BaseTemplate {
                 <button type="submit" class="btn btn-primary">Перейти к выбору времени</button>
             </form>
         ';
+    }
+    public static function renderHistory(array $orders): string {
+        $template = parent::getTemplate();
+        $title = 'История заказов';
+        
+        if (empty($orders)) {
+            $content = '<div class="alert alert-info">У вас пока нет заказов</div>';
+        } else {
+            $content = '<div class="order-history"><table class="table">';
+            $content .= '<thead><tr>
+                <th>ID</th>
+                <th>Дата</th>
+                <th>Товары</th>
+                <th>Сумма</th>
+                <th>Статус</th>
+            </tr></thead><tbody>';
+            
+            foreach ($orders as $order) {
+                $content .= sprintf(
+                    '<tr>
+                        <td>%s</td>
+                        <td>%s</td>
+                        <td>%s</td>
+                        <td>%s руб.</td>
+                        <td>%s</td>
+                    </tr>',
+                    htmlspecialchars($order['id']),
+                    htmlspecialchars($order['created']),
+                    htmlspecialchars($order['products'] ?? 'Нет данных'),
+                    htmlspecialchars($order['total'] ?? '0'),
+                    htmlspecialchars($order['status'] ?? 'Не указан')
+                );
+            }
+            
+            $content .= '</tbody></table></div>';
+        }
+        
+        return sprintf($template, $title, $content);
     }
 }

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1
--- Время создания: Апр 30 2025 г., 18:42
+-- Время создания: Апр 30 2025 г., 20:45
 -- Версия сервера: 10.4.32-MariaDB
 -- Версия PHP: 8.2.12
 
@@ -166,7 +166,7 @@ ALTER TABLE `appointments`
 --
 ALTER TABLE `bookings`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `user_id` (`user_id`);
+  ADD KEY `idx_user_date` (`user_id`,`bookingDate`);
 
 --
 -- Индексы таблицы `orders`
@@ -215,7 +215,7 @@ ALTER TABLE `bookings`
 -- AUTO_INCREMENT для таблицы `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT для таблицы `order_item`

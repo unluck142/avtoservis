@@ -42,25 +42,32 @@ class Router {
     }
 
     private function callControllerAction(string $controllerClass, string $action): string {
-        $fullClassName = "App\\Controllers\\" . $controllerClass;
+        try {
+            $fullClassName = "App\\Controllers\\" . $controllerClass;
+            
+            if (!class_exists($fullClassName)) {
+                throw new \RuntimeException("Controller {$fullClassName} not found");
+            }
         
-        if (!class_exists($fullClassName)) {
-            throw new \RuntimeException("Controller {$fullClassName} not found. Check namespace and autoloading.");
+            $controller = new $fullClassName();
+            
+            if (!method_exists($controller, $action)) {
+                header("HTTP/1.0 404 Not Found");
+                return $this->renderErrorPage(404, "Страница не найдена");
+            }
+            
+            return $controller->$action();
+        } catch (\Exception $e) {
+            error_log("Routing error: " . $e->getMessage());
+            header("HTTP/1.0 500 Internal Server Error");
+            return $this->renderErrorPage(500, "Внутренняя ошибка сервера: " . $e->getMessage());
         }
-    
-        $controller = new $fullClassName();
-        
-        if (!method_exists($controller, $action)) {
-            throw new \RuntimeException("Method {$action} not found in {$fullClassName}");
-        }
-        
-        return $controller->$action();
     }
 
     private function handleLegacyRoute(string $path): string {
         $pieces = explode("/", $path);
         $resource = $pieces[2] ?? null;
-
+    
         switch ($resource) {
             case "about":
                 return (new AboutController())->get();
@@ -93,12 +100,44 @@ class Router {
                 return "";
             case "select_time":
                 return (new OrderController())->selectTime();
+            case "confirm_booking":
+                return (new OrderController())->confirmBooking();
             case "history":
                 return (new AppointmentController())->getHistory();
-            case "profile":
-                return (new UserController())->profile();
+            case "debug_basket":
+                header('Content-Type: application/json');
+                die(json_encode([
+                    'session_id' => session_id(),
+                    'basket' => $_SESSION['basket'] ?? null,
+                    'session' => $_SESSION
+                ], JSON_PRETTY_PRINT));
             default:
-                return (new HomeController())->get();
+                header("HTTP/1.0 404 Not Found");
+                return $this->renderErrorPage(404, "Страница не найдена");
         }
+    }
+
+    private function renderErrorPage(int $code, string $message): string {
+        return sprintf(
+            '<!DOCTYPE html>
+            <html>
+            <head>
+                <title>Ошибка %d</title>
+                <meta charset="UTF-8">
+                <style>
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                    h1 { color:rgb(67, 16, 207); }
+                </style>
+            </head>
+            <body>
+                <h1>Ошибка %d</h1>
+                <p>%s</p>
+                <a href="/avtoservis/">Вернуться на главную</a>
+            </body>
+            </html>',
+            $code,
+            $code,
+            htmlspecialchars($message)
+        );
     }
 }
