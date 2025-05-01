@@ -130,14 +130,18 @@ class UserDBStorage {
     }
     public function updateProfile(int $userId, array $data): bool {
         try {
-            $stmt = $this->pdo->prepare("UPDATE users SET 
-                username = :username,
-                email = :email,
-                address = :address,
-                phone = :phone,
-                avatar = COALESCE(:avatar, avatar)
-                WHERE id = :id");
+            // Подготовка запроса
+            $sql = "UPDATE users SET 
+                    username = :username,
+                    email = :email,
+                    address = :address,
+                    phone = :phone,
+                    avatar = :avatar
+                    WHERE id = :id";
             
+            $stmt = $this->pdo->prepare($sql);
+            
+            // Параметры
             $params = [
                 ':username' => $data['username'],
                 ':email' => $data['email'],
@@ -147,16 +151,18 @@ class UserDBStorage {
                 ':id' => $userId
             ];
             
-            error_log("Executing query with params: " . print_r($params, true));
+            error_log("Executing query: " . $sql);
+            error_log("With params: " . print_r($params, true));
             
             $result = $stmt->execute($params);
             
             if (!$result) {
-                $error = $stmt->errorInfo();
-                error_log("Database error: " . print_r($error, true));
+                $errorInfo = $stmt->errorInfo();
+                error_log("Database error: " . print_r($errorInfo, true));
+                return false;
             }
             
-            return $result;
+            return true;
             
         } catch (PDOException $e) {
             error_log("PDO Exception: " . $e->getMessage());

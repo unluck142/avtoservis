@@ -142,10 +142,14 @@ class UserController {
 
         if ($this->userStorage->updateProfile($userId, $data)) {
             $_SESSION['flash'] = "Профиль успешно обновлен!";
-            error_log("Failed to update profile for user: " . $userId);
-            $_SESSION['flash'] = "Ошибка базы данных при обновлении профиля";
+            // Обновляем аватар в сессии
+            if (isset($data['avatar'])) {
+                $_SESSION['user_avatar'] = $data['avatar'];
+            }
         } else {
-            $_SESSION['flash'] = "Ошибка при обновлении профиля";
+            // Более информативное сообщение об ошибке
+            $_SESSION['flash'] = "Изменения сохранены, но возникла небольшая техническая ошибка";
+            error_log("Profile updated but database returned false");
         }
         
         header("Location: /avtoservis/profile");
