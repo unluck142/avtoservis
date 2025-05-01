@@ -29,18 +29,17 @@ class UserTemplate extends BaseTemplate
     */
     public static function getFormLogin(): string {
         return <<<HTML
-                <form action="/avtoservis/login" method="POST">
-                    <div class="mb-3">
-                        <label for="nameInput" class="form-label">Логин (имя или емайл):</label>
-                        <input type="text" name="username" class="form-control" id="nameInput" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="passwordInput" class="form-label">Пароль:</label>
-                        <input type="password" name="password" class="form-control" id="passwordInput">
-                    </div>
-                    <button type="submit" class="btn btn-primary mb-3">Войти</button>
-                    onsubmit="console.log('Файл:', document.querySelector('[name=avatar]').files[0])">
-                </form>
+            <form action="/avtoservis/login" method="POST">
+                <div class="mb-3">
+                    <label for="nameInput" class="form-label">Логин (имя или емайл):</label>
+                    <input type="text" name="username" class="form-control" id="nameInput" required>
+                </div>
+                <div class="mb-3">
+                    <label for="passwordInput" class="form-label">Пароль:</label>
+                    <input type="password" name="password" class="form-control" id="passwordInput" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </form>
         HTML;
     }
 

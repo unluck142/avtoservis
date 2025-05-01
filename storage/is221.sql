@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1
--- Время создания: Апр 30 2025 г., 20:45
+-- Время создания: Май 01 2025 г., 21:09
 -- Версия сервера: 10.4.32-MariaDB
 -- Версия PHP: 8.2.12
 
@@ -69,7 +69,7 @@ CREATE TABLE `orders` (
   `email` varchar(120) DEFAULT NULL,
   `all_sum` float NOT NULL,
   `created` datetime DEFAULT current_timestamp(),
-  `user_id` int(11) DEFAULT 0,
+  `user_id` int(11) NOT NULL,
   `status` int(11) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -78,7 +78,9 @@ CREATE TABLE `orders` (
 --
 
 INSERT INTO `orders` (`id`, `fio`, `address`, `phone`, `email`, `all_sum`, `created`, `user_id`, `status`) VALUES
-(1, 'качкарёв', 'Патриотов', '89069756331', 'kachkaryov2010@gmail.com', 0, '2025-04-29 03:17:14', 0, 0);
+(10, 'Оськин', 'улица мира', '89511683163', 'plot9743@examstudy.xyz', 16999, '2025-05-01 15:56:54', 1, 1),
+(11, 'Оськин', 'улица мира', '89511683163', 'plot9743@examstudy.xyz', 6999, '2025-05-02 01:29:26', 1, 1),
+(12, 'Оськин', 'улица мира', '89511683163', 'plot9743@examstudy.xyz', 6999, '2025-05-02 02:06:03', 1, 1);
 
 -- --------------------------------------------------------
 
@@ -95,6 +97,17 @@ CREATE TABLE `order_item` (
   `sum_item` float NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Дамп данных таблицы `order_item`
+--
+
+INSERT INTO `order_item` (`id`, `order_id`, `product_id`, `count_item`, `price_item`, `sum_item`) VALUES
+(7, 10, 1, 1, 6999, 6999),
+(8, 10, 2, 1, 6000, 6000),
+(9, 10, 3, 1, 4000, 4000),
+(10, 11, 1, 1, 6999, 6999),
+(11, 12, 1, 1, 6999, 6999);
+
 -- --------------------------------------------------------
 
 --
@@ -106,7 +119,7 @@ CREATE TABLE `products` (
   `name` varchar(120) NOT NULL,
   `description` text DEFAULT NULL,
   `image` varchar(120) DEFAULT NULL,
-  `price` float NOT NULL,
+  `price` decimal(10,2) NOT NULL,
   `created` datetime DEFAULT current_timestamp(),
   `updated` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -116,9 +129,9 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `name`, `description`, `image`, `price`, `created`, `updated`) VALUES
-(1, 'Проверка машини', 'Проверяем вашу машину на проблемы', 'https://localhost/avtoservis/assets/images/proverka.png', 6999, '2025-04-07 12:45:45', '2025-04-08 10:34:37'),
-(2, 'Замена масла', 'Заменяем масло', 'https://localhost/avtoservis/assets/images/oil.png', 6000, '2025-04-07 12:45:45', '2025-04-08 10:34:15'),
-(3, 'Ремонт', 'Ремонтируем вашу машину', 'https://localhost/avtoservis/assets/images/remont.png', 4000, '2025-04-07 12:45:45', '2025-04-24 21:39:14');
+(1, 'Проверка машини', 'Проверяем вашу машину на проблемы', 'https://localhost/avtoservis/assets/images/proverka.png', 6999.00, '2025-04-07 12:45:45', '2025-04-08 10:34:37'),
+(2, 'Замена масла', 'Заменяем масло', 'https://localhost/avtoservis/assets/images/oil.png', 6000.00, '2025-04-07 12:45:45', '2025-04-08 10:34:15'),
+(3, 'Ремонт', 'Ремонтируем вашу машину', 'https://localhost/avtoservis/assets/images/remont.png', 4000.00, '2025-04-07 12:45:45', '2025-04-24 21:39:14');
 
 -- --------------------------------------------------------
 
@@ -145,8 +158,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `fio`, `email`, `password`, `token`, `is_verified`, `created_at`, `address`, `phone`, `avatar`) VALUES
-(1, 'unluck', NULL, 'slump55992@credit-loans.xyz', '$2y$10$/6N6i/WghPLXCsosr2oPhOhllBit66jmLCl6CDz7mqmcUduwrJ3Yi', '', 1, '2025-04-24 21:05:15', NULL, NULL, NULL),
-(2, 'admin', NULL, 'kachkaryov2010@gmail.com', '$2y$10$e4HuMUyCZVEIn.HhnCKi6ejqBBZ6k2erBISpPEzv4w6xJYW4qmuYW', '', 1, '2025-04-24 21:10:45', NULL, NULL, NULL),
+(1, 'unluck', NULL, 'slump55992@credit-loans.xyz', '$2y$10$/6N6i/WghPLXCsosr2oPhOhllBit66jmLCl6CDz7mqmcUduwrJ3Yi', '', 1, '2025-04-24 21:05:15', 'Патриотов 123', '89069756331', '/avtoservis/assets/uploads/avatar_1_1746126044.jpg'),
+(2, 'admin', NULL, 'kachkaryov2010@gmail.com', '$2y$10$e4HuMUyCZVEIn.HhnCKi6ejqBBZ6k2erBISpPEzv4w6xJYW4qmuYW', '', 1, '2025-04-24 21:10:45', 'Патриотов213231', '89511683163123123', '/avtoservis/assets/uploads/avatar_2_1746126547.jpg'),
 (3, 'admin', NULL, 'adult966@business-degree.live', '$2y$10$jlty5ROw.kwgsU2GZMGbtOLZnoYGfgVbqUuiDoyav4V0B/ZJ4EeL6', '', 1, '2025-04-25 15:12:46', NULL, NULL, NULL),
 (5, 'unluck142', NULL, 'plot9743@examstudy.xyz', '$2y$10$WJtk.jthoOoFAcMSu1twtugicKMlmUXnU8sx.wWRG.56.ip.uiRZe', '', 1, '2025-04-29 16:07:17', NULL, NULL, NULL);
 
@@ -215,13 +228,13 @@ ALTER TABLE `bookings`
 -- AUTO_INCREMENT для таблицы `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT для таблицы `order_item`
 --
 ALTER TABLE `order_item`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT для таблицы `products`
