@@ -13,8 +13,8 @@ class BaseTemplate
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>%s</title>
-            <link rel="stylesheet" href="https://localhost/avtoservis/assets/css/bootstrap.min.css">
-            <script src="https://localhost/avtoservis/assets/js/bootstrap.bundle.js"></script>
+            <link rel="stylesheet" href="/avtoservis/assets/css/bootstrap.min.css">
+            <script src="/avtoservis/assets/js/bootstrap.bundle.js"></script>
         </head>
         <body>
             <header>

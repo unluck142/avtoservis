@@ -15,3 +15,5 @@ error_reporting(E_ALL);
 $router = require __DIR__ . '/src/Routes.php';
 echo $router->route($_SERVER['REQUEST_URI']);
 error_log('Session ID: ' . session_id());
+error_log("Request URI: " . $_SERVER['REQUEST_URI']);
+error_log("Path: " . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));

@@ -13,27 +13,29 @@ use App\Controllers\AppointmentController;
 class Router {
     private array $routes = [];
 
-    public function register(string $uri, array $controllerAction, array $methods = ['GET']): void {
+    public function register(string $uri, $handler, array $methods = ['GET']): void {
+        if (!is_array($handler) && !$handler instanceof \Closure) {
+            throw new \InvalidArgumentException('Handler must be array or Closure');
+        }
         $this->routes[] = [
             'uri' => $uri,
-            'controller' => $controllerAction[0],
-            'action' => $controllerAction[1],
+            'handler' => $handler, // Может быть как массивом, так и Closure
             'methods' => $methods
         ];
     }
 
     public function route(string $url): string {
-        $path = parse_url($url, PHP_URL_PATH);
+        $path = parse_url($url, PHP_URL_PATH) ?? '/';
         $method = $_SERVER['REQUEST_METHOD'];
-
-        // Сначала проверяем зарегистрированные маршруты
+    
         foreach ($this->routes as $route) {
             if ($this->matchRoute($path, $route['uri']) && in_array($method, $route['methods'])) {
-                return $this->callControllerAction($route['controller'], $route['action']);
+                if ($route['handler'] instanceof \Closure) {
+                    return $route['handler']();
+                }
+                return $this->callControllerAction($route['handler'][0], $route['handler'][1]);
             }
         }
-
-        // Если маршрут не найден, используем legacy-маршрутизацию
         return $this->handleLegacyRoute($path);
     }
 
@@ -76,12 +78,15 @@ class Router {
             case "register":
                 return (new RegisterController())->get();
             case "profile":
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                        return (new UserController())->updateProfile();
+                }
                 return (new UserController())->profile();
             case "verify":
                 $token = $pieces[3] ?? null;
                 return (new RegisterController())->verify($token);
             case "login":
-                return (new UserController())->get();
+                return (new UserController())->handleLoginRequest();
             case "logout":
                 unset($_SESSION['user_id'], $_SESSION['username']);
                 session_destroy();

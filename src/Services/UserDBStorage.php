@@ -129,22 +129,39 @@ class UserDBStorage {
         return $user;
     }
     public function updateProfile(int $userId, array $data): bool {
-        $stmt = $this->pdo->prepare("UPDATE users SET 
-            username = :username,
-            email = :email,
-            address = :address,
-            phone = :phone,
-            avatar = :avatar
-            WHERE id = :id");
-        
-        return $stmt->execute([
-            ':username' => $data['username'],
-            ':email' => $data['email'],
-            ':address' => $data['address'],
-            ':phone' => $data['phone'],
-            ':avatar' => $data['avatar'] ?? null,
-            ':id' => $userId
-        ]);
+        try {
+            $stmt = $this->pdo->prepare("UPDATE users SET 
+                username = :username,
+                email = :email,
+                address = :address,
+                phone = :phone,
+                avatar = COALESCE(:avatar, avatar)
+                WHERE id = :id");
+            
+            $params = [
+                ':username' => $data['username'],
+                ':email' => $data['email'],
+                ':address' => $data['address'] ?? null,
+                ':phone' => $data['phone'] ?? null,
+                ':avatar' => $data['avatar'] ?? null,
+                ':id' => $userId
+            ];
+            
+            error_log("Executing query with params: " . print_r($params, true));
+            
+            $result = $stmt->execute($params);
+            
+            if (!$result) {
+                $error = $stmt->errorInfo();
+                error_log("Database error: " . print_r($error, true));
+            }
+            
+            return $result;
+            
+        } catch (PDOException $e) {
+            error_log("PDO Exception: " . $e->getMessage());
+            return false;
+        }
     }
     public function getOrderHistory(int $userId): array {
         $stmt = $this->pdo->prepare("
@@ -166,5 +183,26 @@ class UserDBStorage {
         
         $stmt->execute([':user_id' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function loginUser(string $username, string $password): bool {
+        $stmt = $this->pdo->prepare("SELECT id, password FROM users WHERE username = :username OR email = :username");
+        $stmt->execute([':username' => $username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+        if (!$user) {
+            return false;
+        }
+    
+        return password_verify($password, $user['password']);
+    }
+    public function getUserByUsername(string $username): array {
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE username = :username OR email = :username");
+        $stmt->execute([':username' => $username]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+    public function userExists(string $username): bool {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM users WHERE username = :username OR email = :username");
+        $stmt->execute([':username' => $username]);
+        return $stmt->fetchColumn() > 0;
     }
 }

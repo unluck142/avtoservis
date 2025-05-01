@@ -28,7 +28,7 @@ class UserTemplate extends BaseTemplate
         Форма входа (логин, пароль)
     */
     public static function getFormLogin(): string {
-        $html= <<<FORMA
+        return <<<HTML
                 <form action="/avtoservis/login" method="POST">
                     <div class="mb-3">
                         <label for="nameInput" class="form-label">Логин (имя или емайл):</label>
@@ -39,9 +39,9 @@ class UserTemplate extends BaseTemplate
                         <input type="password" name="password" class="form-control" id="passwordInput">
                     </div>
                     <button type="submit" class="btn btn-primary mb-3">Войти</button>
+                    onsubmit="console.log('Файл:', document.querySelector('[name=avatar]').files[0])">
                 </form>
-        FORMA;
-        return $html;
+        HTML;
     }
 
     public static function getHistoryTemplate(?array $data): string {
@@ -225,7 +225,7 @@ class UserTemplate extends BaseTemplate
             <div class="col-lg-6 col-md-8 bg-white border rounded shadow p-4">
                 <h3 class="text-center mb-4" style="color: rgb(161, 157, 208);">Редактирование профиля</h3>
     
-                <form action="/avtoservis/profile" method="POST" enctype="multipart/form-data">
+                <form action="/avtoservis/profile/update" method="POST" enctype="multipart/form-data" method="POST">
                     <!-- Аватар -->
                     <div class="avatar-wrapper">
                         <img src="{$avatar}" alt="Аватар пользователя" class="avatar-preview-form">
@@ -269,7 +269,7 @@ class UserTemplate extends BaseTemplate
     
                     <!-- Кнопка -->
                     <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-custom">
+                        <button type="submit" class="btn btn-custom">  
                             <i class="fas fa-save me-2"></i> Сохранить изменения
                         </button>
                     </div>
